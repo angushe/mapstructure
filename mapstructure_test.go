@@ -41,6 +41,13 @@ type BasicSquash struct {
 	Test Basic `mapstructure:",squash"`
 }
 
+type OmitEmpty struct {
+	Vstring  string  `mapstructure:"vstring,omitempty"`
+	Vstringp *string `mapstructure:"vstringp,omitempty"`
+	Vint     int     `mapstructure:"vint,omitempty"`
+	Vbool    bool    `mapstructure:"vbool,omitempty"`
+}
+
 type Embedded struct {
 	Basic
 	Vunique string
@@ -347,6 +354,54 @@ func TestDecodeFrom_BasicSquash(t *testing.T) {
 		t.Error("vstring should be present in map")
 	} else if !reflect.DeepEqual(v, "foo") {
 		t.Errorf("vstring value should be 'foo': %#v", v)
+	}
+}
+
+func TestDecode_OmitEmpty(t *testing.T) {
+	t.Parallel()
+
+	input := map[string]interface{}{
+		"vstring":  "foo",
+		"vstringp": "notnil",
+	}
+
+	var result OmitEmpty
+	err := Decode(input, &result)
+	if err != nil {
+		t.Fatalf("got an err: %s", err.Error())
+	}
+
+	v := "notnil"
+	expected := OmitEmpty{
+		Vstring:  "foo",
+		Vstringp: &v,
+	}
+
+	if !reflect.DeepEqual(result, expected) {
+		t.Fatalf("bad: %#v", result)
+	}
+}
+
+func TestDecodeFrom_OmitEmpty(t *testing.T) {
+	t.Parallel()
+
+	input := OmitEmpty{
+		Vstring: "foo",
+		Vint:    0,
+	}
+
+	var result map[string]interface{}
+	err := Decode(input, &result)
+	if err != nil {
+		t.Fatalf("got an err: %s", err.Error())
+	}
+
+	expected := map[string]interface{}{
+		"vstring": "foo",
+	}
+
+	if !reflect.DeepEqual(result, expected) {
+		t.Fatalf("bad: %#v", result)
 	}
 }
 

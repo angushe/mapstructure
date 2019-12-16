@@ -689,12 +689,22 @@ func (d *Decoder) decodeMapFromStruct(name string, dataVal reflect.Value, val re
 			keyName = tagParts[0]
 		}
 
+		omitempty := false
 		// If "squash" is specified in the tag, we squash the field down.
 		squash := false
 		for _, tag := range tagParts[1:] {
+			if tag == "omitempty" {
+				omitempty = true
+			}
 			if tag == "squash" {
 				squash = true
-				break
+			}
+		}
+		if omitempty {
+			zero := reflect.Zero(v.Type()).Interface()
+			current := v.Interface()
+			if reflect.DeepEqual(current, zero) {
+				continue
 			}
 		}
 		if squash && v.Kind() != reflect.Struct {
