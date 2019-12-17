@@ -673,6 +673,24 @@ func (d *Decoder) decodeMapFromStruct(name string, dataVal reflect.Value, val re
 		// Next get the actual value of this field and verify it is assignable
 		// to the map value.
 		v := dataVal.Field(i)
+		input := v.Interface()
+		if input == nil {
+			continue
+		}
+		if d.config.DecodeHook != nil {
+			// We have a DecodeHook, so let's pre-process the input.
+			var err error
+			input, err = DecodeHookExec(
+				d.config.DecodeHook,
+				v.Type(), valMap.Type().Elem(), input)
+			if err != nil {
+				return fmt.Errorf("error decoding '%s': %s", name, err)
+			}
+		}
+		if input != nil {
+			v = reflect.ValueOf(input)
+		}
+
 		if !v.Type().AssignableTo(valMap.Type().Elem()) {
 			return fmt.Errorf("cannot assign type '%s' to map value field of type '%s'", v.Type(), valMap.Type().Elem())
 		}
